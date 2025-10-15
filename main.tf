@@ -1,13 +1,3 @@
-terraform {
-  required_providers {
-    azurerm = {
-      source  = "hashicorp/azurerm"
-      version = "~>3.100"
-    }
-  }
-}
-provider "azurerm" { features {} }
-
 # --------- Réseau + RG ----------
 resource "azurerm_resource_group" "rg" {
   name     = "${var.prefix}-rg"
@@ -28,6 +18,5 @@ resource "azurerm_subnet" "subnet" {
   address_prefixes     = ["10.10.1.0/24"]
 }
 
-# (facultatif, utile pour la preuve dans le devoir)
 output "vnet_name"   { value = azurerm_virtual_network.vnet.name }
 output "subnet_name" { value = azurerm_subnet.subnet.name }
