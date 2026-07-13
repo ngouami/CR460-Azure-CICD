@@ -94,7 +94,7 @@ window.Dashboard = (() => {
     // Activity log
     const actLogEl = document.getElementById('dashboardActivity');
     if (actLogEl) {
-      const logs = (await DB.getAll('activity_log') || []).sort((a, b) => new Date(b.ts) - new Date(a.ts)).slice(0, 10);
+      const logs = ((await DB.load('activityLog')) || []).slice(0, 10);
       actLogEl.innerHTML = logs.length
         ? logs.map(l => `<div style="padding:6px 0;border-bottom:1px solid #f0f0f0;font-size:13px;">
             <span style="color:#999;font-size:11px;">${UI.fmtDate(l.ts)}</span>
