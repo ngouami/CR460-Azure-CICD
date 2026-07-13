@@ -1,0 +1,57 @@
+{
+  "name": "cogicore-erp",
+  "version": "2.0.0",
+  "description": "CogiCore ERP — Architecture modulaire SSOT, conformité OHADA/CI",
+  "main": "main.js",
+  "scripts": {
+    "start":   "electron .",
+    "test":    "node tests/test-conformite-ci.js",
+    "build":   "electron-builder --dir",
+    "dist":    "electron-builder",
+    "pack:win":  "electron-builder --win --x64",
+    "pack:mac":  "electron-builder --mac",
+    "pack:linux":"electron-builder --linux"
+  },
+  "build": {
+    "appId": "ci.cogifac.cogicore",
+    "productName": "CogiCore ERP",
+    "copyright": "Copyright © 2026 COGIFAC",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**/*",
+      "core/**/*.js",
+      "modules/**/*.js",
+      "assets/**/*"
+    ],
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "icon": "assets/icon.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "assets/icon.icns",
+      "category": "public.app-category.business"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "assets/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerLanguages": ["fr_FR", "en_US"],
+      "language": "1036"
+    }
+  },
+  "keywords": ["erp", "ohada", "syscohada", "cnps", "cote-ivoire", "electron"],
+  "author": "COGIFAC",
+  "license": "UNLICENSED",
+  "devDependencies": {
+    "electron": "^30.0.0",
+    "electron-builder": "^24.0.0"
+  }
+}

@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <!-- CSP : bloque toute ressource externe (sécurité Electron) -->
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:;">
+  <title>CogiCore ERP</title>
+  <link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- ÉCRAN DE CONNEXION                                         -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div id="loginScreen" role="main" aria-label="Connexion CogiCore">
+  <div class="login-card">
+    <img id="loginLogo" src="" alt="Logo" style="display:none;max-width:130px;margin:0 auto 12px;display:block;">
+    <h1 class="login-title">CogiCore ERP</h1>
+    <p class="login-sub" id="loginSlogan"></p>
+
+    <div id="loginUserSelector" style="display:none;" class="form-group">
+      <label for="loginUserSelect">Compte</label>
+      <select id="loginUserSelect"></select>
+    </div>
+
+    <div class="form-group">
+      <label for="pinInput">Mot de passe</label>
+      <div style="position:relative;">
+        <input type="password" id="pinInput" maxlength="36"
+          autocomplete="current-password" placeholder="Entrez votre mot de passe"
+          onkeydown="if(event.key==='Enter')window.Auth.login()">
+        <button type="button" onclick="window.Auth.togglePwd()"
+          style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:18px;">👁</button>
+      </div>
+    </div>
+
+    <div id="loginLockMsg" style="display:none;" class="alert alert-warn">
+      🔒 Compte bloqué. Réessayez dans <strong id="lockCountdown">30</strong>s.
+    </div>
+
+    <button id="loginBtn" onclick="window.Auth.login()" class="btn btn-primary" style="width:100%;">
+      🔐 Se connecter
+    </button>
+    <div id="loginError" class="text-danger" style="margin-top:10px;min-height:20px;"></div>
+    <div id="loginAttempts" style="display:none;font-size:11px;color:#d97706;margin-top:6px;"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- APP LAYOUT                                                 -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div id="appLayout" style="display:none;" class="layout">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="appSidebar" aria-label="Navigation principale">
+    <div class="logo-section">
+      <img src="" alt="Logo" id="sidebarLogo" style="display:none;max-width:140px;margin:0 auto 6px;background:white;border-radius:6px;padding:4px;">
+      <div id="sidebarName" class="logo-text">CogiCore</div>
+      <div class="tagline" id="sidebarTagline">Construire · Gérer · Valoriser</div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-title">Principal</div>
+      <div class="nav-item active" onclick="UI.switchPage('dashboard')">📊 Tableau de Bord</div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-title">Clients & Ventes</div>
+      <div class="nav-item" onclick="UI.switchPage('clients')">👥 Clients</div>
+      <div class="nav-item" onclick="UI.switchPage('factures')">📄 Factures</div>
+      <div class="nav-item" onclick="UI.switchPage('devis')">📋 Devis</div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-title">Opérations</div>
+      <div class="nav-item" onclick="UI.switchPage('inventaire')">📦 Inventaire</div>
+      <div class="nav-item" onclick="UI.switchPage('produits')">🏷️ Catalogue & Prix</div>
+      <div class="nav-item" onclick="UI.switchPage('projets')">🎯 Projets</div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-title">Équipe</div>
+      <div class="nav-item" onclick="UI.switchPage('rh')">👥 RH & Paie</div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-title">Finances</div>
+      <div class="nav-item" onclick="UI.switchPage('comptabilite')">💼 Comptabilité</div>
+      <div class="nav-item" onclick="UI.switchPage('depenses')">💸 Dépenses</div>
+    </div>
+    <div class="nav-section">
+      <div class="nav-title">Configuration</div>
+      <div class="nav-item" onclick="UI.switchPage('parametrage')">⚙️ Paramétrage</div>
+      <div class="nav-item" onclick="UI.switchPage('settings')">🔧 Paramètres</div>
+    </div>
+
+    <!-- Badge utilisateur -->
+    <div id="userBadgeDesktop" style="margin-top:auto;padding-top:10px;">
+      <div class="user-badge">
+        <div id="badgeRoleDesktop" style="font-weight:bold;color:#FF6B35;">👑 Admin</div>
+        <div id="badgeNameDesktop" style="font-size:11px;opacity:0.8;margin-top:2px;">—</div>
+        <button onclick="window.Auth.logout()" class="btn-logout">🚪 Déconnexion</button>
+      </div>
+    </div>
+    <div style="text-align:center;padding:8px 0 6px;border-top:1px solid rgba(255,255,255,0.12);margin-top:8px;">
+      <div style="font-size:13px;color:rgba(255,255,255,0.3);">CogiCore © 2026<br><small>by COGIFAC</small></div>
+    </div>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="main" id="mainContent">
+
+    <!-- ── DASHBOARD ── -->
+    <div id="dashboard" class="page active">
+      <h1>Tableau de Bord</h1>
+      <div class="grid" id="dashKpis"></div>
+      <div id="dashStockAlerts"></div>
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:20px;margin-bottom:20px;">
+        <div class="card"><h2 style="margin-top:0;font-size:16px;">📊 CA des 6 derniers mois</h2><canvas id="chartCA" height="180"></canvas></div>
+        <div class="card"><h2 style="margin-top:0;font-size:16px;">🥧 Encaissé vs Dépenses</h2><canvas id="chartRatio" height="180"></canvas></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+        <div class="card"><h2 style="margin-top:0;font-size:15px;">🔔 Activité récente</h2><div id="globalActivityLog" style="max-height:200px;overflow-y:auto;"><p class="text-muted">Aucune activité.</p></div></div>
+        <div class="card"><h2 style="margin-top:0;font-size:15px;">📅 Prochains événements</h2><div id="dashUpcoming" style="max-height:200px;overflow-y:auto;"></div></div>
+      </div>
+    </div>
+
+    <!-- ── CLIENTS ── -->
+    <div id="clients" class="page">
+      <h1>👥 Clients</h1>
+      <div class="toolbar">
+        <button class="btn btn-primary btn-create" onclick="UI.openModal('clientModal')">+ Nouveau Client</button>
+        <button class="btn btn-secondary" onclick="Exports.clientsCSV()">📥 Export CSV</button>
+        <input type="text" id="searchClients" placeholder="🔍 Nom, société, email..." oninput="Clients.render()" class="search-input">
+      </div>
+      <div class="table-responsive">
+        <table>
+          <thead><tr><th>Client / Société</th><th>Téléphone</th><th>Email</th><th>Factures</th><th>CA Encaissé</th><th>Impayé</th><th>Actions</th></tr></thead>
+          <tbody id="clientsTable"></tbody>
+        </table>
+      </div>
+      <div id="clientsPagination"></div>
+    </div>
+
+    <!-- ── FACTURES ── -->
+    <div id="factures" class="page">
+      <h1>📄 Factures</h1>
+      <div class="toolbar">
+        <button class="btn btn-primary btn-create" onclick="UI.openModal('invoiceModal')">+ Créer Facture</button>
+        <input type="text" id="searchInvoices" placeholder="🔍 N°, client..." oninput="Invoices.render()" class="search-input">
+        <select id="filterInvoiceStatus" onchange="Invoices.render()" class="select-filter">
+          <option value="">Tous les statuts</option>
+          <option value="En attente">⏳ En attente</option>
+          <option value="Payée">✅ Payée</option>
+          <option value="Annulée">❌ Annulée</option>
+        </select>
+      </div>
+      <div class="table-responsive">
+        <table>
+          <thead><tr><th>N°</th><th>Client</th><th>Montant HT</th><th>TVA</th><th>TTC</th><th>Date</th><th>Statut</th><th>Actions</th></tr></thead>
+          <tbody id="invoicesTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── DEVIS ── -->
+    <div id="devis" class="page">
+      <h1>📋 Devis</h1>
+      <div class="toolbar">
+        <button class="btn btn-primary btn-create" onclick="UI.openModal('quoteModal')">+ Créer Devis</button>
+        <input type="text" id="searchQuotes" placeholder="🔍 N°, client..." oninput="Quotes.render()" class="search-input">
+      </div>
+      <div class="table-responsive">
+        <table>
+          <thead><tr><th>N°</th><th>Client</th><th>Montant HT</th><th>TVA</th><th>TTC</th><th>Date</th><th>Statut</th><th>Actions</th></tr></thead>
+          <tbody id="quotesTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── INVENTAIRE ── -->
+    <div id="inventaire" class="page">
+      <h1>📦 Inventaire & Stock</h1>
+      <div class="toolbar">
+        <button class="btn btn-primary btn-create" onclick="UI.openModal('inventoryModal')">+ Ajouter Mouvement</button>
+        <button class="btn btn-secondary" onclick="Stock.openItemManager()">📋 Gérer les articles</button>
+      </div>
+      <div id="invStockCards" class="grid"></div>
+      <div class="table-responsive">
+        <table>
+          <thead><tr><th>Date</th><th>Type</th><th>Article</th><th>Quantité</th><th>Note</th><th>Actions</th></tr></thead>
+          <tbody id="inventoryTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── PRODUITS ── -->
+    <div id="produits" class="page">
+      <h1>🏷️ Catalogue & Prix</h1>
+      <div class="toolbar">
+        <button class="btn btn-primary btn-create" onclick="Products.openAdd()">+ Ajouter Produit</button>
+        <input type="text" id="searchProducts" placeholder="🔍 Rechercher..." oninput="Products.render()" class="search-input">
+      </div>
+      <div class="table-responsive">
+        <table>
+          <thead><tr><th>Produit / Service</th><th>Catégorie</th><th>Prix HT</th><th>TVA</th><th>Prix TTC</th><th>Stock</th><th>Actions</th></tr></thead>
+          <tbody id="productsTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── PROJETS ── -->
+    <div id="projets" class="page">
+      <h1>🎯 Projets</h1>
+      <div class="toolbar">
+        <button class="btn btn-primary btn-create" onclick="UI.openModal('projectModal')">+ Nouveau Projet</button>
+      </div>
+      <div id="projectsGrid" class="grid"></div>
+    </div>
+
+    <!-- ── RH & PAIE ── -->
+    <div id="rh" class="page">
+      <h1>👥 RH & Paie</h1>
+      <div class="tab-bar">
+        <button class="tab-btn active" onclick="RH.showTab('employes','rhTabEmp',this)">👤 Employés</button>
+        <button class="tab-btn" onclick="RH.showTab('paie','rhTabPaie',this)">💰 Bulletins de Paie</button>
+        <button class="tab-btn" onclick="RH.showTab('rapportRH','rhTabRap',this)">📊 Rapport RH</button>
+      </div>
+      <div id="rhTabEmp" class="tab-content active">
+        <div class="toolbar">
+          <button class="btn btn-primary btn-create" onclick="UI.openModal('employeeModal')">+ Ajouter Employé</button>
+        </div>
+        <div id="rhKpis" class="grid" style="margin-bottom:16px;"></div>
+        <div class="table-responsive">
+          <table>
+            <thead><tr><th>Matricule</th><th>Nom</th><th>Poste</th><th>Contrat</th><th>Salaire Brut</th><th>CNPS (6.3%)</th><th>Net Estimé</th><th>Actions</th></tr></thead>
+            <tbody id="employeesTable"></tbody>
+          </table>
+        </div>
+      </div>
+      <div id="rhTabPaie" class="tab-content">
+        <div class="toolbar">
+          <select id="rhPaieMonth" onchange="RH.renderBulletins()" class="select-filter"></select>
+          <button class="btn btn-secondary" onclick="RH.genBulletinsMasse()">⚡ Générer tous les bulletins</button>
+          <button class="btn btn-secondary" onclick="RH.exportPaieCSV()">📥 Export CSV</button>
+        </div>
+        <div id="bulletinsTable"></div>
+      </div>
+      <div id="rhTabRap" class="tab-content">
+        <div id="rhRapport"></div>
+      </div>
+    </div>
+
+    <!-- ── COMPTABILITÉ ── -->
+    <div id="comptabilite" class="page">
+      <h1>💼 Comptabilité SYSCOHADA</h1>
+      <div class="tab-bar">
+        <button class="tab-btn active" onclick="Compta.showTab('journal',this)">📖 Journal</button>
+        <button class="tab-btn" onclick="Compta.showTab('balance',this)">⚖️ Balance</button>
+        <button class="tab-btn" onclick="Compta.showTab('tva',this)">🧾 Déclaration TVA</button>
+        <button class="tab-btn" onclick="Compta.showTab('bilan',this)">📊 Bilan</button>
+      </div>
+      <div id="comptaContent"></div>
+    </div>
+
+    <!-- ── DÉPENSES ── -->
+    <div id="depenses" class="page">
+      <h1>💸 Dépenses</h1>
+      <div class="toolbar">
+        <button class="btn btn-primary btn-create" onclick="UI.openModal('expenseModal')">+ Déclarer une Dépense</button>
+        <div id="depKpis" class="kpi-row"></div>
+      </div>
+      <div class="table-responsive">
+        <table>
+          <thead><tr><th>Date</th><th>Description</th><th>Montant HT</th><th>TVA déductible</th><th>TTC</th><th>Client lié</th><th>Actions</th></tr></thead>
+          <tbody id="expensesTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ── PARAMÉTRAGE (SSOT) ── -->
+    <div id="parametrage" class="page">
+      <h1>⚙️ Paramétrage Central — Taux Légaux</h1>
+      <div class="card" style="margin-bottom:20px;border-left:4px solid #003D82;">
+        <p style="color:#666;font-size:13px;margin:0;">
+          🔒 Ces paramètres sont issus du <strong>Service de Paramétrage Central (SSOT)</strong>.
+          Ils s'appliquent automatiquement à tous les modules (Paie, TVA, Comptabilité).
+          Un changement ici se propage instantanément.
+        </p>
+      </div>
+      <div id="parametragePanels"></div>
+    </div>
+
+    <!-- ── PARAMÈTRES (Settings) ── -->
+    <div id="settings" class="page">
+      <h1>🔧 Paramètres Entreprise</h1>
+      <div id="settingsContent"></div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- MODAUX                                                     -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- Client -->
+<div id="clientModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <span class="modal-title">👤 Client</span>
+      <button class="close-btn" onclick="UI.closeModal('clientModal')">×</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div class="form-group" style="grid-column:1/-1;"><label>Nom / Société *</label><input type="text" id="cNom"></div>
+      <div class="form-group"><label>Téléphone</label><input type="tel" id="cTel"></div>
+      <div class="form-group"><label>Email</label><input type="email" id="cEmail"></div>
+      <div class="form-group"><label>Type</label>
+        <select id="cType"><option value="LOCAL">Comptoir</option><option value="PRO">Professionnel</option></select>
+      </div>
+      <div class="form-group"><label>N° Contribuable (DGI)</label><input type="text" id="cNCC" placeholder="Optionnel (PRO assujetti TVA)"></div>
+      <div class="form-group" style="grid-column:1/-1;"><label>Adresse</label><input type="text" id="cAdresse"></div>
+    </div>
+    <button class="btn btn-primary" style="width:100%;margin-top:16px;" onclick="Clients.save()">💾 Enregistrer</button>
+  </div>
+</div>
+
+<!-- Facture -->
+<div id="invoiceModal" class="modal">
+  <div class="modal-content" style="max-width:900px;">
+    <div class="modal-header">
+      <span class="modal-title" id="invoiceModalTitle">📄 Nouvelle Facture</span>
+      <button class="close-btn" onclick="UI.closeModal('invoiceModal')">×</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:16px;">
+      <div class="form-group"><label>Client *</label>
+        <div style="position:relative;">
+          <input type="text" id="invClientSearch" placeholder="Rechercher..." oninput="Clients.autocomplete('invClientSearch','invClientDrop','invClientId')">
+          <div id="invClientDrop" class="autocomplete-drop"></div>
+          <input type="hidden" id="invClientId">
+        </div>
+      </div>
+      <div class="form-group"><label>N° Facture</label><input type="text" id="invNumero" placeholder="Auto"></div>
+      <div class="form-group"><label>Date</label><input type="date" id="invDate"></div>
+    </div>
+    <table id="invLinesTable" style="margin-bottom:8px;">
+      <thead><tr><th>Désignation</th><th style="width:70px;">Qté</th><th style="width:110px;">Prix HT</th><th style="width:80px;">TVA %</th><th style="width:110px;">Total HT</th><th style="width:40px;"></th></tr></thead>
+      <tbody id="invLinesTbody"></tbody>
+    </table>
+    <button class="btn btn-secondary" onclick="Invoices.addLine()" style="margin-bottom:16px;">+ Ligne</button>
+    <div style="text-align:right;font-size:14px;line-height:2;">
+      <div>Total HT : <strong id="invTotalHT">0</strong> CFA</div>
+      <div>TVA : <strong id="invTotalTVA">0</strong> CFA</div>
+      <div style="font-size:18px;color:var(--primary);">TTC : <strong id="invTotalTTC">0</strong> CFA</div>
+    </div>
+    <div class="form-group" style="margin-top:8px;"><label>Notes</label><textarea id="invNotes" rows="2"></textarea></div>
+    <button class="btn btn-primary" style="width:100%;margin-top:12px;" onclick="Invoices.save()">💾 Enregistrer la Facture</button>
+  </div>
+</div>
+
+<!-- Devis -->
+<div id="quoteModal" class="modal">
+  <div class="modal-content" style="max-width:900px;">
+    <div class="modal-header">
+      <span class="modal-title">📋 Devis</span>
+      <button class="close-btn" onclick="UI.closeModal('quoteModal')">×</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;">
+      <div class="form-group"><label>Client *</label>
+        <div style="position:relative;">
+          <input type="text" id="qClientSearch" placeholder="Rechercher..." oninput="Clients.autocomplete('qClientSearch','qClientDrop','qClientId')">
+          <div id="qClientDrop" class="autocomplete-drop"></div>
+          <input type="hidden" id="qClientId">
+        </div>
+      </div>
+      <div class="form-group"><label>Date</label><input type="date" id="qDate"></div>
+    </div>
+    <table><thead><tr><th>Désignation</th><th style="width:70px;">Qté</th><th style="width:110px;">Prix HT</th><th style="width:80px;">TVA %</th><th style="width:110px;">Total HT</th><th style="width:40px;"></th></tr></thead><tbody id="qLinesTbody"></tbody></table>
+    <button class="btn btn-secondary" onclick="Quotes.addLine()" style="margin:8px 0 16px;">+ Ligne</button>
+    <div style="text-align:right;font-size:14px;line-height:2;">
+      <div>HT : <strong id="qTotalHT">0</strong> CFA</div>
+      <div>TVA : <strong id="qTotalTVA">0</strong> CFA</div>
+      <div style="font-size:18px;color:var(--primary);">TTC : <strong id="qTotalTTC">0</strong> CFA</div>
+    </div>
+    <button class="btn btn-primary" style="width:100%;margin-top:12px;" onclick="Quotes.save()">💾 Enregistrer le Devis</button>
+  </div>
+</div>
+
+<!-- Employé -->
+<div id="employeeModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <span class="modal-title">👤 Employé</span>
+      <button class="close-btn" onclick="UI.closeModal('employeeModal')">×</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div class="form-group"><label>Nom complet *</label><input type="text" id="empNom"></div>
+      <div class="form-group"><label>Poste *</label><input type="text" id="empPoste"></div>
+      <div class="form-group"><label>Type contrat *</label>
+        <select id="empContrat"><option>CDI</option><option>CDD</option><option>Stage</option><option>Consultant</option><option>Journalier</option></select>
+      </div>
+      <div class="form-group"><label>Salaire brut (CFA) *</label><input type="number" id="empSalaire" min="75000" placeholder="≥ 75 000 (SMIG)"></div>
+      <div class="form-group"><label>Sursalaire (CFA)</label><input type="number" id="empSursalaire" value="0" min="0"></div>
+      <div class="form-group"><label>Date d'embauche</label><input type="date" id="empDateEmb"></div>
+      <div class="form-group"><label>Situation familiale</label>
+        <select id="empSitFam"><option>Célibataire</option><option>Marié</option><option>Divorcé</option><option>Veuf</option></select>
+      </div>
+      <div class="form-group"><label>Nb enfants à charge</label><input type="number" id="empNbEnfants" value="0" min="0" max="20"></div>
+      <div class="form-group"><label>N° CNPS</label><input type="text" id="empNoCNPS" placeholder="CI-ABJ-XXXXXXX"></div>
+      <div class="form-group"><label>N° CNAM (CMU)</label><input type="text" id="empNoCNAM"></div>
+      <div class="form-group"><label>Téléphone</label><input type="tel" id="empTel"></div>
+      <div class="form-group"><label>Email</label><input type="email" id="empEmail"></div>
+      <div class="form-group" style="grid-column:1/-1;"><label>RIB / Compte bancaire</label><input type="text" id="empRib"></div>
+    </div>
+    <div id="empSimulation" class="card" style="margin-top:16px;background:#f8f9ff;border-left:3px solid #003D82;"></div>
+    <button class="btn btn-primary" style="width:100%;margin-top:16px;" onclick="RH.saveEmployee()">💾 Enregistrer</button>
+  </div>
+</div>
+
+<!-- Dépense -->
+<div id="expenseModal" class="modal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <span class="modal-title">💸 Dépense</span>
+      <button class="close-btn" onclick="UI.closeModal('expenseModal')">×</button>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div class="form-group" style="grid-column:1/-1;"><label>Description *</label><input type="text" id="expDesc"></div>
+      <div class="form-group"><label>Montant HT (CFA) *</label><input type="number" id="expMontant" min="0" oninput="Expenses.updateTVA()"></div>
+      <div class="form-group"><label>TVA déductible</label>
+        <select id="expTVAType" onchange="Expenses.updateTVA()">
+          <option value="none">Aucune (non déductible)</option>
+          <option value="normal">18% (facture normalisée DGI)</option>
+          <option value="reduit">9% (taux réduit)</option>
+        </select>
+      </div>
+      <div class="form-group"><label>TVA (CFA)</label><input type="number" id="expTVA" readonly style="background:#f8f9fa;"></div>
+      <div class="form-group"><label>Total TTC (CFA)</label><input type="number" id="expTTC" readonly style="background:#f8f9fa;font-weight:bold;"></div>
+      <div class="form-group"><label>Date</label><input type="date" id="expDate"></div>
+      <div class="form-group"><label>Catégorie</label>
+        <select id="expCat">
+          <option>Matières premières</option><option>Fournitures</option><option>Loyer</option>
+          <option>Services</option><option>Transport</option><option>Salaires</option><option>Autre</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Fournisseur</label><input type="text" id="expFournisseur"></div>
+    </div>
+    <button class="btn btn-primary" style="width:100%;margin-top:16px;" onclick="Expenses.save()">💾 Enregistrer</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- TOAST NOTIFICATIONS                                        -->
+<!-- ══════════════════════════════════════════════════════════ -->
+<div id="erpToast"></div>
+
+<!-- ══════════════════════════════════════════════════════════ -->
+<!-- SCRIPTS — ordre de chargement                             -->
+<!-- ══════════════════════════════════════════════════════════ -->
+
+<!-- 1. SSOT : Service de Paramétrage Central -->
+<script src="../core/parametrage-service.js"></script>
+
+<!-- 2. Modules Métier -->
+<script src="../modules/paie/service-paie.js"></script>
+<script src="../modules/ventes/service-tva.js"></script>
+
+<!-- 3. App : couche UI & données -->
+<script src="js/db.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/clients.js"></script>
+<script src="js/invoices.js"></script>
+<script src="js/quotes.js"></script>
+<script src="js/stock.js"></script>
+<script src="js/products.js"></script>
+<script src="js/rh.js"></script>
+<script src="js/comptabilite.js"></script>
+<script src="js/expenses.js"></script>
+<script src="js/dashboard.js"></script>
+<script src="js/parametrage.js"></script>
+<script src="js/settings.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>
